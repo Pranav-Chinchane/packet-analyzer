@@ -7,3 +7,4 @@ build/
 !data/sample_traffic.pcap
 __pycache__/
 private-notes/
+_site/

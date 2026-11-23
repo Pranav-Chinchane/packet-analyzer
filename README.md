@@ -4,6 +4,8 @@
 
 Open a capture saved by Wireshark. Packet Analyzer shows which apps and websites were used, warns about suspicious traffic, and can remove the traffic you choose into a new, filtered file.
 
+**[Try it online](https://pranav-chinchane.github.io/packet-analyzer/)**: it runs in your browser, and your file is never uploaded.
+
 ![Packet Analyzer showing the example capture](docs/screenshot.png)
 
 ## What it does
@@ -19,7 +21,9 @@ Open a capture saved by Wireshark. Packet Analyzer shows which apps and websites
 
 It works on **saved recordings**. It does not watch or block your live internet, and it does not decrypt anything.
 
-## Get started (Windows)
+## Run it on your computer (Windows)
+
+The online version uses the single-threaded engine. The version on your computer also has the multi-threaded one and the command line.
 
 ### 1. Install once
 
@@ -95,7 +99,8 @@ Block options can be repeated. `dpi_simple` uses one thread and `dpi_mt` uses se
 ## How it works
 
 ```
-Web page  ->  Python server  ->  C++ engine  ->  report + filtered file
+On your computer:  web page  ->  Python server  ->  C++ engine  ->  report + filtered file
+Online:            web page  ->  C++ engine as WebAssembly, inside the browser
 
 Inside the engine, for every packet:
 read  ->  decode addresses  ->  find its connection  ->  find the app  ->  check rules  ->  keep or drop
@@ -108,6 +113,7 @@ HTTPS is encrypted, but the first message of a connection usually shows the webs
 | C++17, standard library only | The engine and its threads |
 | Python, standard library only | The local web server, tests and sample files |
 | HTML, CSS, JavaScript | The web page, with no framework |
+| WebAssembly (Emscripten) | Running the C++ engine in the browser |
 
 ## Find your way around
 
@@ -115,6 +121,7 @@ HTTPS is encrypted, but the first message of a connection usually shows the webs
 |---|---|
 | [src](src), [include](include) | C++ engine: code and headers |
 | [ui](ui) | Web page and its server |
+| [web](web) | Online version: runs the C++ engine in the browser (WebAssembly) |
 | [tests](tests) | Automatic tests |
 | [data](data) | Two sample captures, both generated |
 | [tools](tools) | Programs that generate the samples |

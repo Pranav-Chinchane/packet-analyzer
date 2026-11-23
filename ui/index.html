@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="engine" content="server">
+<meta name="description" content="See which apps and websites are in a network capture, find suspicious traffic and filter it.">
 <title>Packet Analyzer</title>
 <link rel="icon" href="data:,">
 <style>
-@font-face { font-family:Schibsted; src:url(/fonts/schibsted-grotesk.woff2) format("woff2"); font-weight:400 900; font-display:swap; }
+@font-face { font-family:Schibsted; src:url(fonts/schibsted-grotesk.woff2) format("woff2"); font-weight:400 900; font-display:swap; }
 :root {
   color-scheme: light;   /* light theme only */
   --primary:#17458F; --primary-dark:#0F3270; --data:#3F7FD1; --tint:#EDF3FB;
@@ -45,7 +47,7 @@ fieldset.group legend { float:left; width:100%; } fieldset.group legend + * { cl
 .chip span { display:flex; align-items:center; gap:9px; min-height:44px; padding:0 10px; border:1px solid var(--line); border-radius:8px; font-size:14px; background:#fff; transition:background .15s,border-color .15s; }
 .chip:hover span { background:var(--soft); }
 .chip svg.i { display:none; width:16px; height:16px; margin-left:auto; }
-.chip input:checked + span { background:var(--bad-tint); border-color:var(--bad); color:var(--bad-ink); font-weight:600; } .chip input:checked + span svg.i { display:block; }
+.chip input:checked + span { background:var(--bad-tint); border-color:var(--bad); color:var(--bad-ink); font-weight:600; } .chip input:checked + span svg.i, .chip .brand svg.i { display:block; } .chip .brand svg.i { margin:0; }
 .chip input:focus-visible + span { outline:2px solid var(--primary); outline-offset:2px; }
 input[type=text], input[type=search] { width:100%; min-height:44px; padding:8px 12px; border:1px solid var(--control); border-radius:6px; background:#fff; color:var(--ink); font:inherit; }
 .hint { margin-top:4px; } .field + .field { margin-top:16px; }
@@ -92,9 +94,9 @@ th.num { font-family:var(--sans) !important; } .num { text-align:right; font-fam
 .link { display:inline-flex; align-items:center; gap:10px; min-height:32px; padding:0; border:0; background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; } .link:hover { color:var(--primary); text-decoration:underline; text-underline-offset:3px; } .act { color:var(--primary); font-weight:600; min-height:36px; }
 td.act-cell, th.act-cell { text-align:right; white-space:nowrap; width:96px; } i.brand svg { width:18px; height:18px; color:var(--muted); }
 .xscroll { position:relative; overflow-x:auto; } .xscroll table { min-width:820px; } .scroll { position:relative; } #flows td, #devices td { overflow-wrap:normal; } #flows td:nth-child(3), #flows td:nth-child(4), #devices td:first-child { white-space:nowrap; } #flows td:nth-child(2) { overflow-wrap:anywhere; min-width:150px; } #connections { scroll-margin-top:16px; }
-#edit { display:none; } .act:disabled { opacity:.5; cursor:wait; } #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:3; width:max-content; max-width:calc(100vw - 32px); padding:12px 20px; border-radius:8px; background:var(--ink); color:#fff; overflow-wrap:anywhere; }
+.private { margin-left:auto; max-width:46ch; text-align:right; } #edit { display:none; } .act:disabled { opacity:.5; cursor:wait; } #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:3; width:max-content; max-width:calc(100vw - 32px); padding:12px 20px; border-radius:8px; background:var(--ink); color:#fff; overflow-wrap:anywhere; }
 @media (max-width:1100px) { .two { grid-template-columns:minmax(0,1fr); } .kpis { grid-template-columns:1fr 1fr; } }
-@media (max-width:860px) { .insight { grid-template-columns:minmax(0,1fr); } .insight > div + div { border-left:0; border-top:1px solid var(--line); } #edit { display:inline-flex; } #form.closed { display:none; } .layout { grid-template-columns:minmax(0,1fr); padding:16px; } .top { padding:12px 16px; } }
+@media (max-width:860px) { .top { flex-wrap:wrap; } .private { margin:0; text-align:left; } .insight { grid-template-columns:minmax(0,1fr); } .insight > div + div { border-left:0; border-top:1px solid var(--line); } #edit { display:inline-flex; } #form.closed { display:none; } .layout { grid-template-columns:minmax(0,1fr); padding:16px; } .top { padding:12px 16px; } }
 @media (max-width:360px) { .chips { grid-template-columns:minmax(0,1fr); } #apps th:nth-child(2), #apps td:nth-child(2) { display:none; } .outcome { gap:16px; } }
 @media (max-width:480px) { .hosts th:nth-child(2), .hosts td:nth-child(2) { display:none; } .hosts .act-cell { width:72px; } #apps th:nth-child(1) { width:128px; } #apps th.num { width:72px; } td, th { padding-inline:8px; } .kpi b { font-size:28px; } .kpi { padding:14px; } }
 @media (prefers-reduced-motion:reduce) { * { transition:none !important; animation:none !important; } }
@@ -121,6 +123,7 @@ td.act-cell, th.act-cell { text-align:right; white-space:nowrap; width:96px; } i
 <header class="top">
   <div class="logo"><svg class="i" aria-hidden="true"><use href="#i-pulse"/></svg></div>
   <div><h1>Packet Analyzer</h1><p class="muted small">Deep packet inspection for network captures</p></div>
+  <p class="muted small private" id="privacy" hidden>Your file stays on your device. It is analyzed in this browser and never uploaded.</p>
 </header>
 
 <main class="layout">
@@ -145,7 +148,7 @@ td.act-cell, th.act-cell { text-align:right; white-space:nowrap; width:96px; } i
       <input type="text" id="ips" autocomplete="off" spellcheck="false" aria-describedby="iHint ipsErr">
       <p class="muted small hint" id="iHint">Example: 192.168.1.50 or 2001:db8::1. Separate several with commas.</p><p class="err" id="ipsErr"></p></div>
   </div>
-  <fieldset class="group"><legend>Engine</legend><div class="seg">
+  <fieldset class="group" id="engineChoice"><legend>Engine</legend><div class="seg">
     <label><input type="radio" name="engine" value="simple" checked><span>Single-thread</span></label>
     <label><input type="radio" name="engine" value="mt"><span>Multi-thread</span></label></div></fieldset>
   <div class="gobar"><div class="alert" id="message" role="alert" hidden></div>
@@ -158,7 +161,7 @@ td.act-cell, th.act-cell { text-align:right; white-space:nowrap; width:96px; } i
     <h2>No analysis yet</h2><p class="muted">Choose a capture or use the sample, select what to block, then analyze it to see the traffic.</p></div>
   <div class="stack" id="out" hidden>
     <div class="head"><div><h2 id="title" tabindex="-1">Results</h2><p class="muted small" id="subtitle"></p></div>
-      <button type="button" class="btn" id="edit">Change settings</button><a class="btn" id="download"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Download filtered file</a></div>
+      <button type="button" class="btn" id="edit">Change settings</button><a class="btn" id="download" download="filtered.pcap"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Download filtered file</a></div>
     <div class="alert warn" id="warning" hidden></div>
     <div class="kpis" id="kpis"></div>
     <div class="card insight"><div><h2>Summary</h2><ul id="summary"></ul></div><div><h2>Alerts</h2><ul id="alerts"></ul></div></div>
@@ -183,10 +186,11 @@ td.act-cell, th.act-cell { text-align:right; white-space:nowrap; width:96px; } i
 <div id="tip" hidden></div>
 <div id="toast" role="status" hidden></div>
 
-<script src="/icons.js"></script>
+<script src="icons.js"></script>
 <script>
 const $ = id => document.getElementById(id), fmt = n => n.toLocaleString();
 const APPS = ["YouTube","Facebook","Instagram","WhatsApp","Twitter/X","Netflix","TikTok","Spotify","Telegram","Discord","Zoom","Google","Amazon","Microsoft","Apple","GitHub","Cloudflare","QUIC"];
+const ONLINE = document.querySelector("meta[name=engine]").content === "browser";
 const PROTOCOLS = { HTTP: "globe", HTTPS: "lock", DNS: "list", QUIC: "fast", Other: "help", FTP: "list", SSH: "lock", Telnet: "list", Email: "list", "File sharing": "layers", "Remote desktop": "globe", Database: "layers", DHCP: "link", NTP: "list", mDNS: "link" };
 let capture = null, captureName = "", nameRows = [], last = null;
 
@@ -229,11 +233,11 @@ $("drop").ondragleave = () => $("drop").classList.remove("over");
 $("drop").ondrop = e => { e.preventDefault(); $("drop").classList.remove("over"); const f = e.dataTransfer.files[0]; if (f) choose(f, f.name); };
 async function useSample() {
   try {
-    const r = await fetch("/api/sample");
+    const r = await fetch(ONLINE ? "sample_traffic.pcap" : "/api/sample");
     if (!r.ok) throw 0;
     $("file").value = "";
     choose(await r.blob(), "sample_traffic.pcap", true);
-  } catch { $("fileErr").textContent = "The sample could not be loaded. Check that the server is running and the sample file exists."; }
+  } catch { $("fileErr").textContent = "The sample could not be loaded. Reload the page, or check that the server is running."; }
 }
 $("sample").onclick = useSample;
 $("edit").onclick = () => { $("form").classList.toggle("closed"); $("form").scrollIntoView(); };
@@ -283,6 +287,32 @@ function alertBox(id, text) { $(id).hidden = !text; $(id).replaceChildren(...(te
 
 $("form").onsubmit = event => { event.preventDefault(); analyze(false); };
 
+/* Two ways to run the C++ engine: the local server, or WebAssembly in this browser. */
+async function runOnServer(q, file) {
+  const r = await fetch("/api/analyze?" + q, { method: "POST", body: file });
+  const data = await r.json().catch(() => ({ error: "The server could not handle this request." }));
+  if (!r.ok) throw new Error(data.error);
+  data.url = "/api/download/" + data.id;
+  return data;
+}
+let filteredUrl = "";
+async function runInBrowser(q, file) {
+  if (file.size > 200 * 1024 * 1024) throw new Error("The file is larger than 200 MB.");
+  const args = [];
+  for (const [key, flag] of [["app", "--block-app"], ["domain", "--block-domain"], ["ip", "--block-ip"]])
+    q.getAll(key).forEach(v => args.push(flag, v));
+  const bytes = await file.arrayBuffer(), worker = new Worker("worker.js");
+  const answer = await new Promise((done, fail) => {
+    worker.onmessage = e => done(e.data);
+    worker.onerror = () => fail(new Error("The engine could not be loaded. Check your connection and reload the page."));
+    worker.postMessage({ capture: bytes, args }, [bytes]);
+  }).finally(() => worker.terminate());
+  if (answer.error) throw new Error(answer.error);
+  URL.revokeObjectURL(filteredUrl);
+  filteredUrl = URL.createObjectURL(new Blob([answer.filtered], { type: "application/octet-stream" }));
+  return Object.assign(answer.report, { url: filteredUrl });
+}
+
 /* Runs the engine. keep: stay at the same place and filters (Block buttons). Returns true on success. */
 async function analyze(keep) {
   setError("domains", ""); setError("ips", ""); alertBox("message", "");
@@ -295,9 +325,7 @@ async function analyze(keep) {
   const name = captureName;
   let ok = false;
   try {
-    const r = await fetch("/api/analyze?" + q, { method: "POST", body: capture });
-    const data = await r.json().catch(() => ({ error: "The server could not handle this request." }));
-    if (!r.ok) throw new Error(data.error);
+    const data = await (ONLINE ? runInBrowser(q, capture) : runOnServer(q, capture));
     show(data, name, q.get("engine"), keep);
     ok = true;
   } catch (e) {
@@ -378,7 +406,7 @@ function show(d, name, engine, keep) {
   $("empty").hidden = true; $("out").hidden = false;
   $("title").textContent = name;
   $("subtitle").textContent = `${fmt(d.bytes)} bytes, ${fmt(d.tcp)} TCP, ${fmt(d.udp)} UDP, ${fmt(d.unsupported)} unsupported. Engine: ${engine === "mt" ? "multi-thread" : "single-thread"}.`;
-  $("download").href = "/api/download/" + d.id;
+  $("download").href = d.url;
   alertBox("warning", d.warning);
   $("kpis").replaceChildren(...[["Total packets", d.total, "layers"], ["Forwarded", d.forwarded, "check"], ["Dropped", d.dropped, "block"], ["Connections", d.flows, "link"]].map(([n, v, i]) =>
     el("div", "card kpi" + (i === "block" ? " bad" : i === "check" ? " good" : ""), el("div", "name", n, el("span", "ic", icon(i))), el("b", "", fmt(v)))));
@@ -426,6 +454,8 @@ function show(d, name, engine, keep) {
   shownOnce = true;
 }
 let shownOnce = false;
+$("engineChoice").hidden = ONLINE;
+$("privacy").hidden = !ONLINE;
 useSample().then(() => { if (capture) $("form").requestSubmit(); });   // start with the example
 </script>
 </body>

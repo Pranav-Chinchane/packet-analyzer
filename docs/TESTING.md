@@ -35,7 +35,9 @@ Each ends with the number of failures, which should be 0.
 - **Undefined-behaviour check:** passed on the unit tests and during the damaged-file runs.
 - **Web page:** tried in Chrome from 320 to 1440 pixels wide.
 
-AddressSanitizer and ThreadSanitizer were not available on the development PC. The workflow in `.github/workflows` runs them on Linux.
+- **Online version:** 17 captures, each with and without rules, gave the same report (or the same error) as the normal engine.
+
+AddressSanitizer and ThreadSanitizer were not available on the development PC. The workflow in `.github/workflows` runs them on Linux, and they passed.
 
 ## Performance
 

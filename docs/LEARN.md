@@ -178,7 +178,9 @@ Both programs use the same `FlowProcessor`. The tests compare their complete rep
 2. The server runs the C++ program with `--json`.
 3. The program writes JSON; the server returns it and the page draws it.
 
-| Protection | Against |
+**Online version.** [build_site.py](../web/build_site.py) compiles the same C++ code to WebAssembly, a format browsers can run. [worker.js](../web/worker.js) runs it in a background worker, with the capture as a file in the browser's memory. No server is involved. `.github/workflows/pages.yml` publishes it.
+
+| Protection (local server) | Against |
 |---|---|
 | Listens on 127.0.0.1 only | Other computers connecting |
 | Checks `Host` and `Origin` | Other websites using your server through your browser |
