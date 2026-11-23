@@ -6,6 +6,8 @@ Open a capture saved by Wireshark. Packet Analyzer shows which apps and websites
 
 **[Try it online](https://pranav-chinchane.github.io/packet-analyzer/)**: it runs in your browser, and your file is never uploaded.
 
+**[Watch the demo](demo-output/packet-analyzer-demo.mp4)** (1 min 44 s, no sound)
+
 ![Packet Analyzer showing the example capture](docs/screenshot.png)
 
 ## What it does
