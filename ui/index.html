@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Packet Analyzer</title>
+<link rel="icon" href="data:,">
+<style>
+@font-face { font-family:Schibsted; src:url(/fonts/schibsted-grotesk.woff2) format("woff2"); font-weight:400 900; font-display:swap; }
+:root {
+  color-scheme: light;   /* light theme only */
+  --primary:#17458F; --primary-dark:#0F3270; --data:#3F7FD1; --tint:#EDF3FB;
+  --bg:#F1F5FA; --card:#FFFFFF; --ink:#0F172A; --muted:#475569; --soft:#E9EEF6; --line:#DDE5EF; --control:#7C8BA1;
+  --bad:#DC2626; --bad-ink:#B91C1C; --bad-tint:#FEF2F2; --good-ink:#166534; --good-tint:#F0FDF4; --warn-ink:#92400E; --warn-tint:#FFFBEB;
+  --sans:Schibsted,"Segoe UI",sans-serif; --mono:var(--sans);
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 var(--sans); }
+h1,h2,h3,p { margin:0; }
+h1 { font-size:22px; line-height:1.2; letter-spacing:-.02em; } h2 { font-size:18px; letter-spacing:-.01em; font-weight:650; } #title { font-size:26px; letter-spacing:-.025em; } .muted { color:var(--muted); } .small { font-size:13px; }
+svg.i { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+[hidden] { display:none !important; }
+:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+.sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+
+.top { background:#fff; border-bottom:1px solid var(--line); padding:16px 24px; display:flex; align-items:center; gap:12px; }
+.logo { width:40px; height:40px; border-radius:10px; background:var(--primary); color:#fff; display:grid; place-items:center; flex:none; }
+.layout { display:grid; grid-template-columns:332px minmax(0,1fr); gap:24px; padding:24px; max-width:1440px; margin:auto; align-items:start; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:0 1px 2px #0f32700a,0 8px 24px #0f32700a; }
+.panel { padding:20px; }
+
+/* form */
+.group { border:0; margin:0; padding:0 0 20px; min-width:0; }
+.group + .group { border-top:1px solid var(--line); padding-top:20px; }
+.label, legend { display:block; font-weight:600; padding:0; margin-bottom:8px; }
+fieldset.group legend { float:left; width:100%; } fieldset.group legend + * { clear:both; }
+.drop { display:flex; flex-direction:column; align-items:center; text-align:center; gap:2px; padding:20px 12px; border:1.5px dashed var(--control); border-radius:8px; background:var(--bg); cursor:pointer; transition:background .15s,border-color .15s; }
+.drop:hover, .drop.over { background:var(--tint); border-color:var(--primary); }
+.drop svg { color:var(--primary); width:24px; height:24px; margin-bottom:4px; } .drop b { overflow-wrap:anywhere; }
+.pick { color:var(--primary); text-decoration:underline; text-underline-offset:4px; } .current { margin-top:12px; padding:10px 12px; border-radius:6px; background:var(--tint); } .current b { display:block; font-size:15px; overflow-wrap:anywhere; }
+.drop:focus-within { outline:2px solid var(--primary); outline-offset:2px; }
+.chips { display:grid; grid-template-columns:1fr 1fr; gap:8px; } svg.brand { width:18px; height:18px; flex:none; } i.brand { width:18px; height:18px; flex:none; } .appname { display:flex; align-items:center; gap:10px; }
+.chip { position:relative; cursor:pointer; }
+.chip input { position:absolute; inset:0; opacity:0; margin:0; width:100%; height:100%; cursor:pointer; }
+.chip span { display:flex; align-items:center; gap:9px; min-height:44px; padding:0 10px; border:1px solid var(--line); border-radius:8px; font-size:14px; background:#fff; transition:background .15s,border-color .15s; }
+.chip:hover span { background:var(--soft); }
+.chip svg.i { display:none; width:16px; height:16px; margin-left:auto; }
+.chip input:checked + span { background:var(--bad-tint); border-color:var(--bad); color:var(--bad-ink); font-weight:600; } .chip input:checked + span svg.i { display:block; }
+.chip input:focus-visible + span { outline:2px solid var(--primary); outline-offset:2px; }
+input[type=text], input[type=search] { width:100%; min-height:44px; padding:8px 12px; border:1px solid var(--control); border-radius:6px; background:#fff; color:var(--ink); font:inherit; }
+.hint { margin-top:4px; } .field + .field { margin-top:16px; }
+.invalid { border-color:var(--bad) !important; } .err { color:var(--bad-ink); font-size:13px; margin-top:4px; }
+.seg { display:grid; grid-template-columns:1fr 1fr; background:var(--soft); border-radius:8px; padding:4px; }
+.seg label { position:relative; cursor:pointer; } .seg input { position:absolute; opacity:0; inset:0; margin:0; cursor:pointer; }
+.seg span { display:grid; place-items:center; min-height:40px; border-radius:6px; font-size:14px; color:var(--muted); }
+.seg input:checked + span { background:#fff; color:var(--primary); font-weight:600; box-shadow:0 1px 2px #0f172a26; }
+.seg input:focus-visible + span { outline:2px solid var(--primary); }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 16px; border:1px solid var(--control); border-radius:6px; background:#fff; color:var(--ink); font:600 15px var(--sans); cursor:pointer; text-decoration:none; transition:background .15s; }
+.btn:hover { background:var(--soft); }
+.btn.main { background:var(--primary); box-shadow:0 2px 8px #1e40af40; border-color:var(--primary); color:#fff; width:100%; } .btn.main:hover { background:var(--primary-dark); }
+.btn:disabled { opacity:.65; cursor:wait; } .wide { width:100%; margin-top:8px; }
+.spin { width:16px; height:16px; border:2px solid #ffffff66; border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.alert { display:flex; gap:8px; padding:12px; border-radius:6px; margin-bottom:16px; background:var(--bad-tint); color:var(--bad-ink); border:1px solid #FECACA; overflow-wrap:anywhere; }
+.alert.warn { background:var(--warn-tint); color:var(--warn-ink); border-color:#FDE68A; }
+
+/* results */
+.stack { display:grid; gap:20px; min-width:0; }
+.empty { padding:72px 24px; text-align:center; } .empty .mark { width:56px; height:56px; border-radius:12px; background:var(--tint); color:var(--primary); display:grid; place-items:center; margin:0 auto 16px; } .empty p { max-width:430px; margin:6px auto 0; }
+.head { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; } .head > div { min-width:0; overflow-wrap:anywhere; }
+.kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+.kpi { padding:18px 20px; } .kpi .name { display:flex; justify-content:space-between; gap:8px; color:var(--muted); font-size:14px; } .kpi .ic { width:36px; height:36px; border-radius:8px; display:grid; place-items:center; background:var(--tint); color:var(--primary); flex:none; } .kpi .name { align-items:center; }
+.kpi b { display:block; font:600 38px/1.15 var(--sans); letter-spacing:-.035em; margin-top:4px; overflow-wrap:anywhere; } .kpi.bad .ic { background:var(--bad-tint); color:var(--bad); } .kpi.good .ic { background:var(--good-tint); color:var(--good-ink); }
+.outcome { display:flex; align-items:center; gap:24px; margin-top:16px; flex-wrap:wrap; } .donut { position:relative; width:150px; height:150px; } .donut svg { width:100%; height:100%; transform:rotate(-90deg); } .donut p { position:absolute; inset:0; display:grid; place-content:center; text-align:center; } .donut b { font:650 26px/1.15 var(--sans); letter-spacing:-.03em; }
+.legend { display:grid; gap:10px; } .legend span { display:flex; align-items:center; gap:8px; } .key { width:12px; height:12px; border-radius:3px; }
+.two { display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:20px; align-items:start; }
+table { width:100%; border-collapse:collapse; } th { text-align:left; font-size:13px; font-weight:500; color:var(--muted); background:var(--bg); }
+td, th { padding:9px 12px; border-bottom:1px solid var(--soft); overflow-wrap:anywhere; } tbody tr:last-child td { border-bottom:0; } tbody tr:hover { background:var(--tint); }
+th.num { font-family:var(--sans) !important; } .num { text-align:right; font-family:var(--mono); white-space:nowrap; }
+.tablecard { overflow:hidden; } .tablecard > .head { padding:16px 20px; border-bottom:1px solid var(--line); } .tablecard td:first-child, .tablecard th:first-child { padding-left:20px; } .tablecard td:last-child, .tablecard th:last-child { padding-right:20px; }
+.scroll { max-height:440px; overflow:auto; } .scroll th { position:sticky; top:0; }
+#apps { table-layout:fixed; } #apps th:nth-child(1) { width:150px; } .track { display:flex; gap:2px; } .bar.stop { background:var(--bad); } .bar:not(:last-child) { border-radius:0; } #apps th.num { width:88px; font-family:var(--sans); } .bar { height:14px; min-width:2px; border-radius:0 4px 4px 0; background:var(--data); }
+.badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:4px; font-size:13px; font-weight:600; white-space:nowrap; background:var(--good-tint); color:var(--good-ink); } .badge svg { width:14px; height:14px; } .badge.bad { background:var(--bad-tint); color:var(--bad-ink); }
+.search { position:relative; width:min(260px,100%); } .search svg { position:absolute; left:12px; top:12px; color:var(--muted); } .search input { padding-left:40px; }
+.workers { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; margin-top:14px; } .workers div { background:var(--bg); border-radius:6px; padding:12px; } .workers b { display:block; font:600 20px var(--mono); }
+#tip { position:fixed; pointer-events:none; background:var(--ink); color:#fff; padding:6px 10px; border-radius:6px; font-size:13px; z-index:2; max-width:260px; }
+.gobar { position:sticky; bottom:0; margin:0 -20px -20px; padding:14px 20px 20px; background:var(--card); border-top:1px solid var(--line); border-radius:0 0 12px 12px; z-index:1; } .gobar .alert { margin-bottom:12px; }
+.insight { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); } .insight > div { padding:20px; } .insight > div + div { border-left:1px solid var(--line); }
+.insight ul { margin:12px 0 0; padding:0; list-style:none; display:grid; gap:10px; } .insight li { display:flex; gap:10px; overflow-wrap:anywhere; } .insight li > svg { margin-top:2px; color:var(--good-ink); } .insight li.warn > svg { color:var(--bad); } .insight li.info > svg { color:var(--warn-ink); } .insight li b { display:block; } .insight li > span { min-width:0; }
+.time { display:flex; align-items:flex-end; gap:2px; height:120px; margin-top:16px; border-bottom:1px solid var(--line); } .time div { flex:1; min-width:0; height:100%; display:flex; flex-direction:column; justify-content:flex-end; gap:1px; } .time i { display:block; background:var(--data); border-radius:2px 2px 0 0; } .time i.stop { background:var(--bad); } .time i + i { border-radius:0; } .time div:hover { background:var(--tint); }
+.ends { display:flex; justify-content:space-between; gap:12px; margin-top:6px; }
+.link { display:inline-flex; align-items:center; gap:10px; min-height:32px; padding:0; border:0; background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; } .link:hover { color:var(--primary); text-decoration:underline; text-underline-offset:3px; } .act { color:var(--primary); font-weight:600; min-height:36px; }
+td.act-cell, th.act-cell { text-align:right; white-space:nowrap; width:96px; } i.brand svg { width:18px; height:18px; color:var(--muted); }
+.xscroll { position:relative; overflow-x:auto; } .xscroll table { min-width:820px; } .scroll { position:relative; } #flows td, #devices td { overflow-wrap:normal; } #flows td:nth-child(3), #flows td:nth-child(4), #devices td:first-child { white-space:nowrap; } #flows td:nth-child(2) { overflow-wrap:anywhere; min-width:150px; } #connections { scroll-margin-top:16px; }
+#edit { display:none; } .act:disabled { opacity:.5; cursor:wait; } #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:3; width:max-content; max-width:calc(100vw - 32px); padding:12px 20px; border-radius:8px; background:var(--ink); color:#fff; overflow-wrap:anywhere; }
+@media (max-width:1100px) { .two { grid-template-columns:minmax(0,1fr); } .kpis { grid-template-columns:1fr 1fr; } }
+@media (max-width:860px) { .insight { grid-template-columns:minmax(0,1fr); } .insight > div + div { border-left:0; border-top:1px solid var(--line); } #edit { display:inline-flex; } #form.closed { display:none; } .layout { grid-template-columns:minmax(0,1fr); padding:16px; } .top { padding:12px 16px; } }
+@media (max-width:360px) { .chips { grid-template-columns:minmax(0,1fr); } #apps th:nth-child(2), #apps td:nth-child(2) { display:none; } .outcome { gap:16px; } }
+@media (max-width:480px) { .hosts th:nth-child(2), .hosts td:nth-child(2) { display:none; } .hosts .act-cell { width:72px; } #apps th:nth-child(1) { width:128px; } #apps th.num { width:72px; } td, th { padding-inline:8px; } .kpi b { font-size:28px; } .kpi { padding:14px; } }
+@media (prefers-reduced-motion:reduce) { * { transition:none !important; animation:none !important; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12m-5-5 5 5 5-5M4 20h16"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="i-block" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5zM3 13l9 5 9-5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="m8 8 8 8"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><path d="M5 11h14v9H5zM8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-fast" viewBox="0 0 24 24"><path d="m13 3-8 11h6l-1 7 8-11h-6z"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9.5a3 3 0 1 1 4 2.8c-.7.3-1 .8-1 1.7m0 3v.5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3.5v.5"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="logo"><svg class="i" aria-hidden="true"><use href="#i-pulse"/></svg></div>
+  <div><h1>Packet Analyzer</h1><p class="muted small">Deep packet inspection for network captures</p></div>
+</header>
+
+<main class="layout">
+<form class="card panel" id="form" novalidate aria-label="Analysis settings">
+  <div class="group">
+    <span class="label" id="fileLabel">Capture file</span>
+    <label class="drop" id="drop">
+      <input class="sr" type="file" id="file" accept=".pcap,.pcapng" aria-labelledby="fileLabel chosen" aria-describedby="fileErr">
+      <svg class="i" aria-hidden="true"><use href="#i-upload"/></svg>
+      <b class="pick">Choose your own file</b><span>or drag and drop it here</span><span class="muted small">.pcap or .pcapng, up to 200 MB</span>
+    </label>
+    <p class="err" id="fileErr" role="alert"></p>
+    <p class="current small" aria-live="polite"><span class="muted" id="chosenKind">Selected file</span><b id="chosen">None</b></p>
+    <button type="button" class="btn wide" id="sample">Use sample capture</button>
+  </div>
+  <fieldset class="group"><legend>Block apps</legend><div class="chips" id="checks"></div></fieldset>
+  <div class="group">
+    <div class="field"><label class="label" for="domains">Block domains</label>
+      <input type="text" id="domains" autocomplete="off" spellcheck="false" aria-describedby="dHint domainsErr">
+      <p class="muted small hint" id="dHint">Example: facebook.com. Includes subdomains.</p><p class="err" id="domainsErr"></p></div>
+    <div class="field"><label class="label" for="ips">Block IP addresses</label>
+      <input type="text" id="ips" autocomplete="off" spellcheck="false" aria-describedby="iHint ipsErr">
+      <p class="muted small hint" id="iHint">Example: 192.168.1.50 or 2001:db8::1. Separate several with commas.</p><p class="err" id="ipsErr"></p></div>
+  </div>
+  <fieldset class="group"><legend>Engine</legend><div class="seg">
+    <label><input type="radio" name="engine" value="simple" checked><span>Single-thread</span></label>
+    <label><input type="radio" name="engine" value="mt"><span>Multi-thread</span></label></div></fieldset>
+  <div class="gobar"><div class="alert" id="message" role="alert" hidden></div>
+    <button class="btn main" id="go">Analyze capture</button></div>
+</form>
+
+<section class="stack" aria-label="Results">
+  <p class="sr" id="status" role="status"></p>
+  <div class="card empty" id="empty"><div class="mark"><svg class="i" aria-hidden="true"><use href="#i-pulse"/></svg></div>
+    <h2>No analysis yet</h2><p class="muted">Choose a capture or use the sample, select what to block, then analyze it to see the traffic.</p></div>
+  <div class="stack" id="out" hidden>
+    <div class="head"><div><h2 id="title" tabindex="-1">Results</h2><p class="muted small" id="subtitle"></p></div>
+      <button type="button" class="btn" id="edit">Change settings</button><a class="btn" id="download"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Download filtered file</a></div>
+    <div class="alert warn" id="warning" hidden></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="card insight"><div><h2>Summary</h2><ul id="summary"></ul></div><div><h2>Alerts</h2><ul id="alerts"></ul></div></div>
+    <div class="two">
+      <div class="card tablecard"><div class="head"><h2>Packets by application</h2></div>
+        <table id="apps"><thead><tr><th>App</th><th><span class="sr">Bar</span></th><th class="num">Packets</th><th class="num">Share</th></tr></thead><tbody></tbody></table></div>
+      <div class="stack"><div class="card panel"><h2>Traffic outcome</h2><div class="outcome"><div class="donut"><svg viewBox="0 0 100 100" id="donut" aria-hidden="true"></svg><p aria-hidden="true"><b id="rate"></b><span class="muted small">forwarded</span></p></div><div class="legend" id="legend"></div></div></div>
+      <div class="card tablecard"><div class="head"><h2>Blocked connections</h2></div>
+        <div class="scroll"><table><thead><tr><th>Reason</th><th class="num">Count</th></tr></thead><tbody id="blocked"></tbody></table></div></div>
+      <div class="card panel"><h2>Traffic over time</h2><div class="time" id="time" aria-hidden="true"></div><div class="ends muted small"><span id="from"></span><span id="to"></span></div><p class="sr" id="timeText"></p></div></div>
+    </div>
+    <div class="card tablecard" id="devicesCard"><div class="head"><h2>Devices on the local network</h2></div>
+      <div class="xscroll"><table><thead><tr><th>Address</th><th>Most used</th><th class="num">Connections</th><th class="num">Packets</th><th class="num">Blocked</th><th class="act-cell"><span class="sr">Action</span></th></tr></thead><tbody id="devices"></tbody></table></div></div>
+    <div class="card tablecard"><div class="head"><h2>Detected host names</h2><div class="search"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg><input type="search" id="filter" placeholder="Filter names or apps" aria-label="Filter host names or apps"></div></div>
+      <div class="scroll"><table class="hosts"><thead><tr><th>Host name</th><th>App</th><th>Status</th><th class="act-cell"><span class="sr">Action</span></th></tr></thead><tbody id="names"></tbody></table></div></div>
+    <div class="card tablecard" id="connections"><div class="head"><h2>Connections</h2><div class="search"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg><input type="search" id="find" placeholder="App, name or address" aria-label="Filter connections"></div></div>
+      <div class="scroll xscroll"><table><thead><tr><th>App</th><th>Host name</th><th>From</th><th>To</th><th class="num">Packets</th><th>Status</th></tr></thead><tbody id="flows"></tbody></table></div></div>
+    <div class="card panel" id="workersCard"><h2>Packets per worker thread</h2><div class="workers" id="workers"></div></div>
+  </div>
+</section>
+</main>
+<div id="tip" hidden></div>
+<div id="toast" role="status" hidden></div>
+
+<script src="/icons.js"></script>
+<script>
+const $ = id => document.getElementById(id), fmt = n => n.toLocaleString();
+const APPS = ["YouTube","Facebook","Instagram","WhatsApp","Twitter/X","Netflix","TikTok","Spotify","Telegram","Discord","Zoom","Google","Amazon","Microsoft","Apple","GitHub","Cloudflare","QUIC"];
+const PROTOCOLS = { HTTP: "globe", HTTPS: "lock", DNS: "list", QUIC: "fast", Other: "help", FTP: "list", SSH: "lock", Telnet: "list", Email: "list", "File sharing": "layers", "Remote desktop": "globe", Database: "layers", DHCP: "link", NTP: "list", mDNS: "link" };
+let capture = null, captureName = "", nameRows = [], last = null;
+
+// Text is always set with textContent, never parsed as HTML.
+function el(tag, cls, ...children) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  e.append(...children);
+  return e;
+}
+function icon(name) {
+  const NS = "http://www.w3.org/2000/svg", s = document.createElementNS(NS, "svg"), u = document.createElementNS(NS, "use");
+  s.setAttribute("class", "i"); s.setAttribute("aria-hidden", "true"); u.setAttribute("href", "#i-" + name);
+  s.append(u);
+  return s;
+}
+function mark(app) {
+  if (!ICONS[app]) return el("i", "brand", ...(PROTOCOLS[app] ? [icon(PROTOCOLS[app])] : []));
+  const NS = "http://www.w3.org/2000/svg", m = document.createElementNS(NS, "svg"), p = document.createElementNS(NS, "path");
+  m.setAttribute("viewBox", "0 0 24 24"); m.setAttribute("class", "brand"); m.setAttribute("aria-hidden", "true");
+  p.setAttribute("d", ICONS[app][1]); p.setAttribute("fill", ICONS[app][0]);
+  m.append(p);
+  return m;
+}
+for (const app of APPS) {
+  const box = el("input");
+  box.type = "checkbox"; box.value = app;
+  $("checks").append(el("label", "chip", box, el("span", "", mark(app), app, icon("block"))));
+}
+
+function choose(blob, name, sample) {
+  capture = blob; captureName = name;
+  $("chosen").textContent = name || "None";
+  $("chosenKind").textContent = name && sample ? "Selected file (example)" : "Selected file";
+  $("fileErr").textContent = "";
+}
+$("file").onchange = () => { const f = $("file").files[0]; choose(f || null, f ? f.name : ""); };
+$("drop").ondragover = e => { e.preventDefault(); $("drop").classList.add("over"); };
+$("drop").ondragleave = () => $("drop").classList.remove("over");
+$("drop").ondrop = e => { e.preventDefault(); $("drop").classList.remove("over"); const f = e.dataTransfer.files[0]; if (f) choose(f, f.name); };
+async function useSample() {
+  try {
+    const r = await fetch("/api/sample");
+    if (!r.ok) throw 0;
+    $("file").value = "";
+    choose(await r.blob(), "sample_traffic.pcap", true);
+  } catch { $("fileErr").textContent = "The sample could not be loaded. Check that the server is running and the sample file exists."; }
+}
+$("sample").onclick = useSample;
+$("edit").onclick = () => { $("form").classList.toggle("closed"); $("form").scrollIntoView(); };
+
+/* Rules typed in a text field, and the Block buttons that edit it. */
+const listOf = id => $(id).value.split(/[\s,]+/).filter(Boolean);
+function ruleButton(id, value) {
+  const on = listOf(id).includes(value), b = el("button", "link act", on ? "Unblock" : "Block");
+  b.type = "button";
+  b.setAttribute("aria-label", (on ? "Unblock " : "Block ") + value);
+  b.onclick = async () => {
+    const before = $(id).value, dropped = last.dropped;
+    document.querySelectorAll(".act").forEach(x => x.disabled = true);
+    b.textContent = on ? "Unblocking" : "Blocking";
+    $(id).value = (on ? listOf(id).filter(v => v !== value) : [...listOf(id), value]).join(", ");
+    if (await analyze(true)) {
+      const change = last.dropped - dropped;
+      toast(on ? `${value} unblocked. ${fmt(-change)} more packets forwarded.` : `${value} blocked. ${fmt(change)} more packets dropped.`);
+      const again = [...document.querySelectorAll(".act")].find(x => x.dataset.rule === id + value);
+      if (again) again.focus({ preventScroll: true });
+    } else {
+      $(id).value = before;                // undo a rule that was not accepted
+      document.querySelectorAll(".act").forEach(x => x.disabled = false);
+      b.textContent = on ? "Unblock" : "Block";
+    }
+  };
+  b.dataset.rule = id + value;
+  return el("td", "act-cell", b);
+}
+let toastTimer = 0;
+function toast(text) {
+  $("toast").textContent = text; $("toast").hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("toast").hidden = true, 5000);
+}
+
+function setError(id, text) {
+  $(id + "Err").textContent = text;
+  $(id).classList.toggle("invalid", !!text);
+  $(id).setAttribute("aria-invalid", text ? "true" : "false");
+}
+function busy(on) {
+  $("go").disabled = on;
+  $("go").replaceChildren(...(on ? [el("span", "spin"), "Analyzing..."] : ["Analyze capture"]));
+}
+function alertBox(id, text) { $(id).hidden = !text; $(id).replaceChildren(...(text ? [icon("alert"), el("span", "", text)] : [])); }
+
+$("form").onsubmit = event => { event.preventDefault(); analyze(false); };
+
+/* Runs the engine. keep: stay at the same place and filters (Block buttons). Returns true on success. */
+async function analyze(keep) {
+  setError("domains", ""); setError("ips", ""); alertBox("message", "");
+  if (!capture) { $("form").classList.remove("closed"); $("fileErr").textContent = "Choose a capture file first."; $("file").focus(); return false; }
+  const q = new URLSearchParams({ engine: document.querySelector("[name=engine]:checked").value });
+  document.querySelectorAll("#checks input:checked").forEach(b => q.append("app", b.value));
+  for (const [id, key] of [["domains", "domain"], ["ips", "ip"]])
+    listOf(id).forEach(v => q.append(key, v));
+  busy(true);
+  const name = captureName;
+  let ok = false;
+  try {
+    const r = await fetch("/api/analyze?" + q, { method: "POST", body: capture });
+    const data = await r.json().catch(() => ({ error: "The server could not handle this request." }));
+    if (!r.ok) throw new Error(data.error);
+    show(data, name, q.get("engine"), keep);
+    ok = true;
+  } catch (e) {
+    $("form").classList.remove("closed");    // errors must be visible on phones
+    const bad = /^invalid value for --block-(ip|domain): (.*)/.exec(e.message);
+    if (bad) {
+      const id = bad[1] === "ip" ? "ips" : "domains";
+      setError(id, `"${bad[2]}" is not a valid ${bad[1] === "ip" ? "IP address" : "domain"}.`);
+      $(id).focus();
+    } else alertBox("message", e instanceof TypeError ? "Cannot reach the server. Check that it is running." : e.message);
+  }
+  busy(false);
+  return ok;
+}
+
+function tip(target, text) {
+  target.onmousemove = e => {
+    $("tip").textContent = text; $("tip").hidden = false;
+    $("tip").style.left = Math.min(e.clientX + 12, innerWidth - $("tip").offsetWidth - 8) + "px";
+    $("tip").style.top = Math.min(e.clientY + 14, innerHeight - $("tip").offsetHeight - 8) + "px";
+  };
+  target.onmouseleave = () => $("tip").hidden = true;
+}
+function emptyRow(text, span) { const td = el("td", "muted", text); td.colSpan = span; return el("tr", "", td); }
+function appLink(app) {
+  const b = el("button", "link", mark(app), app);
+  b.type = "button"; b.title = "Show connections";
+  b.onclick = () => { $("find").value = app; showFlows(); $("connections").scrollIntoView(); $("find").focus({ preventScroll: true }); };
+  return b;
+}
+function showNames() {
+  const f = $("filter").value.trim().toLowerCase();
+  const list = nameRows.filter(r => (r[0] + " " + r[1]).toLowerCase().includes(f));
+  $("names").replaceChildren(...(list.length ? list.map(([n, app, blocked]) =>
+    el("tr", "", el("td", "", n), el("td", app ? "" : "muted", app ? el("div", "appname", mark(app), app) : "Other website"),
+      el("td", "", el("span", blocked ? "badge bad" : "badge", icon(blocked ? "block" : "check"), blocked ? "Blocked" : "Allowed")), blocked && !listOf("domains").includes(n) ? el("td", "act-cell muted small", "By another rule") : ruleButton("domains", n))) :
+    [emptyRow(f ? "No names match this filter." : "No host names were found.", 4)]));
+}
+$("filter").oninput = showNames;
+
+/* Each connection as one row. */
+function showFlows() {
+  const f = $("find").value.trim().toLowerCase();
+  const end = (ip, port) => (ip.includes(":") ? `[${ip}]` : ip) + ":" + port;
+  const list = last.connections.filter(c => [c.app, c.name, c.client, c.server, c.reason].join(" ").toLowerCase().includes(f));
+  $("flows").replaceChildren(...(list.length ? list.slice(0, 200).map(c => el("tr", "", el("td", "", el("div", "appname", mark(c.app), c.app)),
+    el("td", c.name ? "" : "muted", c.name || "No name sent"), el("td", "", end(c.client, c.clientPort)), el("td", "", end(c.server, c.serverPort)), el("td", "num", fmt(c.packets)),
+    el("td", "", el("span", c.reason ? "badge bad" : "badge", icon(c.reason ? "block" : "check"), c.reason ? "Blocked" : "Allowed")))) : [emptyRow("No connections match this filter.", 6)]));
+}
+$("find").oninput = showFlows;
+
+function showTime(t, total) {
+  const max = Math.max(1, ...t.slots.map(([a, b]) => a + b)), clock = n => new Date(n * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  $("time").replaceChildren(...t.slots.map(([go, stop], i) => {
+    const bar = el("div");
+    for (const [v, cls] of [[stop, "stop"], [go, ""]]) if (v) { const p = el("i", cls); p.style.height = 100 * v / max + "%"; bar.append(p); }
+    tip(bar, `${clock(t.start + i * t.width)}: ${fmt(go)} forwarded, ${fmt(stop)} blocked`);
+    return bar;
+  }));
+  $("from").textContent = t.slots.length ? clock(t.start) : "";
+  $("to").textContent = t.slots.length > 1 ? clock(t.start + t.slots.length * t.width) : "";
+  $("timeText").textContent = `The busiest moment had ${fmt(max)} of ${fmt(total)} packets.`;
+}
+
+function show(d, name, engine, keep) {
+  last = d;
+  $("form").classList.add("closed");       // only has an effect on small screens
+  $("summary").replaceChildren(...d.summary.map(t => el("li", "", icon("check"), el("span", "", t))));
+  $("alerts").replaceChildren(...(d.alerts.length ? d.alerts.map(a => el("li", a.warning ? "warn" : "info", icon("alert"), el("span", "", el("b", "", a.title), a.detail))) :
+    [el("li", "", icon("check"), el("span", "", "Nothing unusual was found."))]));
+  showTime(d.timeline, d.total);
+  $("devicesCard").hidden = !d.devices.length;
+  $("devices").replaceChildren(...d.devices.map(v => el("tr", "", el("td", "", v.ip), el("td", "", el("div", "appname", mark(v.app), v.app)),
+    el("td", "num", fmt(v.connections)), el("td", "num", fmt(v.packets)), el("td", "num", fmt(v.dropped)), ruleButton("ips", v.ip))));
+  if (!keep) $("find").value = "";
+  showFlows();
+  const pct = n => (d.total ? 100 * n / d.total : 0).toFixed(1) + "%";
+  $("empty").hidden = true; $("out").hidden = false;
+  $("title").textContent = name;
+  $("subtitle").textContent = `${fmt(d.bytes)} bytes, ${fmt(d.tcp)} TCP, ${fmt(d.udp)} UDP, ${fmt(d.unsupported)} unsupported. Engine: ${engine === "mt" ? "multi-thread" : "single-thread"}.`;
+  $("download").href = "/api/download/" + d.id;
+  alertBox("warning", d.warning);
+  $("kpis").replaceChildren(...[["Total packets", d.total, "layers"], ["Forwarded", d.forwarded, "check"], ["Dropped", d.dropped, "block"], ["Connections", d.flows, "link"]].map(([n, v, i]) =>
+    el("div", "card kpi" + (i === "block" ? " bad" : i === "check" ? " good" : ""), el("div", "name", n, el("span", "ic", icon(i))), el("b", "", fmt(v)))));
+
+  const parts = [["Forwarded", d.forwarded, "var(--data)"], ["Dropped", d.dropped, "var(--bad)"]];
+  const shown = parts.filter(p => p[1]), gap = shown.length > 1 ? 1.2 : 0;
+  let start = 0;
+  $("donut").replaceChildren(...shown.map(([n, v, c]) => {
+    const e = document.createElementNS("http://www.w3.org/2000/svg", "circle"), share = 100 * v / d.total;
+    for (const [k, x] of Object.entries({ cx: 50, cy: 50, r: 42, fill: "none", pathLength: 100, "stroke-width": 12,
+      "stroke-dasharray": `${Math.max(share - gap, 0.5)} 100`, "stroke-dashoffset": -start })) e.setAttribute(k, x);
+    e.style.stroke = c; start += share;
+    tip(e, `${n}: ${fmt(v)} packets`);
+    return e;
+  }));
+  $("rate").textContent = pct(d.forwarded);
+  $("legend").replaceChildren(...parts.map(([n, v, c]) => {
+    const k = el("i", "key"); k.style.background = c; return el("span", "", k, `${n}: ${fmt(v)} (${pct(v)})`);
+  }));
+
+  const apps = Object.entries(d.apps).sort((a, b) => b[1] - a[1]);
+  document.querySelector("#apps tbody").replaceChildren(...(apps.length ? apps.map(([app, n]) => {
+    const drop = d.appsDropped[app] || 0, track = el("div", "track");
+    for (const [v, cls] of [[n - drop, "bar"], [drop, "bar stop"]]) if (v) {
+      const bar = el("div", cls);
+      bar.style.width = 100 * v / apps[0][1] + "%";
+      track.append(bar);
+    }
+    const tr = el("tr", "", el("td", "", appLink(app)), el("td", "", track), el("td", "num", fmt(n)), el("td", "num", pct(n)));
+    tip(tr, `${app}: ${fmt(n - drop)} forwarded, ${fmt(drop)} blocked`);
+    return tr;
+  }) : [emptyRow("No TCP or UDP traffic found.", 4)]));
+
+  const blocked = Object.entries(d.blocked).sort((a, b) => b[1] - a[1]);
+  $("blocked").replaceChildren(...(blocked.length ? blocked.map(([r, n]) => el("tr", "", el("td", "", r[0].toUpperCase() + r.slice(1)), el("td", "num", fmt(n)))) :
+    [emptyRow("Nothing was blocked.", 2)]));
+  const blockedNames = new Set(blocked.map(([r]) => (/\(([^)]*)\)$/.exec(r) || [])[1]));
+  nameRows = Object.entries(d.names).sort((a, b) => !a[1] - !b[1]).map(([n, a]) => [n, a, blockedNames.has(n)]);
+  if (!keep) $("filter").value = "";
+  showNames();
+  $("workersCard").hidden = !d.workers.length;
+  $("workers").replaceChildren(...d.workers.map((n, i) => el("div", "", el("span", "muted small", "Worker " + i), el("b", "", fmt(n)))));
+  $("status").textContent = `Analysis complete. ${fmt(d.forwarded)} forwarded, ${fmt(d.dropped)} dropped.`;
+  if (shownOnce && !keep) $("title").focus({ preventScroll: innerWidth > 860 });
+  shownOnce = true;
+}
+let shownOnce = false;
+useSample().then(() => { if (capture) $("form").requestSubmit(); });   // start with the example
+</script>
+</body>
+</html>

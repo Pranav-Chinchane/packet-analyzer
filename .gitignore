@@ -1,0 +1,9 @@
+build/
+*.exe
+*.o
+*.pcap
+*.pcapng
+!data/test_dpi.pcap
+!data/sample_traffic.pcap
+__pycache__/
+private-notes/

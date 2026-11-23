@@ -1,0 +1,78 @@
+
+==================== DPI REPORT ====================
+  Total packets     : 77
+  Total bytes       : 5696
+  TCP packets       : 73
+  UDP packets       : 4
+  Unsupported       : 0
+  Forwarded         : 68
+  Dropped           : 9
+  Flows             : 27
+
+-------------------- Summary -----------------------
+  77 packets in 27 connections over 1 minute 16 seconds.
+  HTTPS made up the most traffic: 6.5% of packets.
+  2 devices on the local network. The busiest was 192.168.1.100.
+  Your rules blocked 9 packets (11.7%).
+
+--------------------- Alerts -----------------------
+  Unencrypted web traffic: Others on the network can read traffic to example.com, httpbin.org.
+
+--------------------- Devices ----------------------
+  192.168.1.100, 72 packets, mostly HTTP
+  192.168.1.50, 5 packets, mostly HTTPS
+
+-------------- Application breakdown ---------------
+  HTTPS                  5    6.5%  ##
+  HTTP                   4    5.2%  ##
+  DNS                    4    5.2%  ##
+  Google                 4    5.2%  ##
+  YouTube                4    5.2%  ##
+  Facebook               4    5.2%  ##
+  Instagram              4    5.2%  ##
+  Twitter/X              4    5.2%  ##
+  Netflix                4    5.2%  ##
+  Amazon                 4    5.2%  ##
+  Microsoft              4    5.2%  ##
+  Apple                  4    5.2%  ##
+  Telegram               4    5.2%  ##
+  TikTok                 4    5.2%  ##
+  Spotify                4    5.2%  ##
+  Zoom                   4    5.2%  ##
+  Discord                4    5.2%  ##
+  GitHub                 4    5.2%  ##
+  Cloudflare             4    5.2%  ##
+
+------------------ Detected names ------------------
+  api.twitter.com -> Twitter/X
+  discord.com -> Discord
+  example.com -> (no known app)
+  github.com -> GitHub
+  httpbin.org -> (no known app)
+  open.spotify.com -> Spotify
+  twitter.com -> Twitter/X
+  web.telegram.org -> Telegram
+  www.amazon.com -> Amazon
+  www.apple.com -> Apple
+  www.cloudflare.com -> Cloudflare
+  www.facebook.com -> Facebook
+  www.google.com -> Google
+  www.instagram.com -> Instagram
+  www.microsoft.com -> Microsoft
+  www.netflix.com -> Netflix
+  www.tiktok.com -> TikTok
+  www.youtube.com -> YouTube
+  zoom.us -> Zoom
+
+------------------- Blocked flows ------------------
+  IP 192.168.1.50 x5
+  app TikTok (www.tiktok.com) x1
+  app YouTube (www.youtube.com) x1
+  domain facebook.com (www.facebook.com) x2
+====================================================
+Threads: 2 load balancers x 2 workers
+  Worker 0 packets : 18
+  Worker 1 packets : 18
+  Worker 2 packets : 22
+  Worker 3 packets : 19
+Output written to: build/output.pcap
